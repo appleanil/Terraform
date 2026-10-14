@@ -1,16 +1,13 @@
 # Terraform Structure
 
-terraform-project/
+terraform-VPC-EC2-Airtel-Project/
+```
 ├── terraform.tf
-
 ├── provider.tf
-
 ├── variables.tf
-
 ├── main.tf
-
 └── terraform.tfvars
-
+```
 
 # 1. terraform.tf
 ```
