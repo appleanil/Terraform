@@ -2,11 +2,16 @@
 
 terraform-project/
 ├── terraform.tf
+
 ├── provider.tf
+
 ├── variables.tf
+
 ├── main.tf
+
 └── terraform.tfvars
-|__ output.tf
+
+
 # 1. terraform.tf
 ```
 
