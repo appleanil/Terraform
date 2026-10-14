@@ -90,72 +90,8 @@ variable "ssh_cidr" {
   }
 }
 ```
-# 3. main.tf with validation functions and output block
+# 3. main.tf with output block
 ```
-# =========================================================
-# INPUT VARIABLES WITH VALIDATION
-# =========================================================
-
-variable "aws_region" {
-  description = "AWS region"
-  type        = string
-  default     = "ap-south-1"
-
-  validation {
-    condition     = contains(["ap-south-1", "ap-south-2", "us-east-1", "us-west-2"], var.aws_region)
-    error_message = "Choose a region from the allowed list."
-  }
-}
-
-variable "ami_id" {
-  description = "Linux AMI ID"
-  type        = string
-
-  validation {
-    condition     = can(regex("^ami-[0-9a-fA-F]+$", var.ami_id))
-    error_message = "AMI ID must start with ami- followed by hexadecimal characters."
-  }
-}
-
-variable "instance_type" {
-  description = "EC2 instance type"
-  type        = string
-  default     = "t3.micro"
-
-  validation {
-    condition     = contains(["t2.micro", "t3.micro", "t3.small", "t3.medium"], var.instance_type)
-    error_message = "Select a supported instance type from the configured list."
-  }
-}
-
-variable "key_name" {
-  description = "Existing EC2 key pair name"
-  type        = string
-
-  validation {
-    condition     = length(trimspace(var.key_name)) > 0
-    error_message = "Key pair name cannot be empty."
-  }
-}
-
-variable "ssh_cidr" {
-  description = "Your public IPv4 address in /32 CIDR notation"
-  type        = string
-
-  validation {
-    condition     = can(cidrnetmask(var.ssh_cidr))
-    error_message = "Enter a valid IPv4 CIDR address."
-  }
-
-  validation {
-    condition = (
-      can(cidrnetmask(var.ssh_cidr)) ?
-      tonumber(split("/", var.ssh_cidr)[1]) == 32 :
-      false
-    )
-    error_message = "Use one IPv4 address with /32 for SSH access."
-  }
-}
 
 # =========================================================
 # VPC
@@ -318,7 +254,7 @@ resource "aws_route_table_association" "private_b" {
 
 resource "aws_security_group" "public_sg" {
   name        = "anil-public-sg"
-  description = "SSH from my IP and HTTP from internet"
+  description = "Allow SSH from my IP and HTTP from internet"
   vpc_id      = aws_vpc.main.id
 
   ingress {
@@ -355,7 +291,7 @@ resource "aws_security_group" "public_sg" {
 
 resource "aws_security_group" "private_sg" {
   name        = "anil-private-sg"
-  description = "SSH from public EC2 security group"
+  description = "Allow SSH from public EC2 security group"
   vpc_id      = aws_vpc.main.id
 
   ingress {
@@ -461,7 +397,7 @@ output "public_instance_id" {
 }
 
 output "public_instance_ip" {
-  description = "Public EC2 IP address"
+  description = "Public EC2 public IP address"
   value       = aws_instance.public_ec2.public_ip
 }
 
@@ -479,6 +415,7 @@ output "website_url" {
   description = "Apache web server URL"
   value       = "http://${aws_instance.public_ec2.public_ip}"
 }
+
 ```
 
 # 4. terraform.tfvars
