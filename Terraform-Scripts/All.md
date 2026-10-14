@@ -224,16 +224,27 @@ output "security_group_name" {
 
 # 4. AWS resource	Quantity
 VPC	1
+
 Public subnets	2
+
 Private subnets	2
+
 Internet Gateway	1
+
 NAT Gateway	1
+
 Elastic IP	1
+
 Public route table	1
+
 Private route table	1
+
 Route table associations	4
+
 Security groups	2
+
 Public EC2	1
+
 Private EC2 2 with output block code
 # main.tf
 ```
@@ -573,11 +584,11 @@ output "web_server_url" {
 ```
 
 # terraform.tfvars
-
+```
 ami_id   = "ami-0011550b539717e2a"
 key_name = "newanil6969d"
 ssh_cidr = "106.200.27.215/32"
-
+```
 
 
 
