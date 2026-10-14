@@ -30,7 +30,7 @@ resource "aws_s3_object" "my_object" {
 }
 ```
 
-# 2. IAM User and Policy and Permission Boundary
+# 2. IAM User and Policy and Permission Boundary with output block
 ```
 terraform {
   required_version = ">= 1.5.0"
@@ -97,6 +97,35 @@ resource "aws_iam_user_policy_attachment" "s3_policy_attachment" {
   user       = aws_iam_user.s3_user.name
   policy_arn = aws_iam_policy.s3_policy.arn
 }
+# Output: IAM User Name
+output "iam_user_name" {
+  description = "Name of the created IAM user"
+  value       = aws_iam_user.s3_user.name
+}
+
+# Output: IAM User ARN
+output "iam_user_arn" {
+  description = "ARN of the created IAM user"
+  value       = aws_iam_user.s3_user.arn
+}
+
+# Output: IAM User Unique ID
+output "iam_user_unique_id" {
+  description = "Unique ID of the IAM user"
+  value       = aws_iam_user.s3_user.unique_id
+}
+
+# Output: S3 Policy ARN
+output "s3_policy_arn" {
+  description = "ARN of the custom S3 policy"
+  value       = aws_iam_policy.s3_policy.arn
+}
+
+# Output: Attached Policy ARN
+output "attached_s3_policy_arn" {
+  description = "ARN of the policy attached to the IAM user"
+  value       = aws_iam_user_policy_attachment.s3_policy_attachment.policy_arn
+}
 ```
 # 3. EC2 Instance
 ```
@@ -142,9 +171,54 @@ resource "aws_security_group" "main-sg" {
     }
     tags = {
       Name = "test-sgs"
-    }
+    }  
+}
+# Output: EC2 Instance ID
+output "instance_id" {
+  description = "ID of the EC2 instance"
+  value       = aws_instance.dev.id
+}
 
-   
+# Output: EC2 Public IP
+output "public_ip" {
+  description = "Public IP address of the EC2 instance"
+  value       = aws_instance.dev.public_ip
+}
+
+# Output: EC2 Private IP
+output "private_ip" {
+  description = "Private IP address of the EC2 instance"
+  value       = aws_instance.dev.private_ip
+}
+
+# Output: EC2 Instance Type
+output "instance_type" {
+  description = "Type of the EC2 instance"
+  value       = aws_instance.dev.instance_type
+}
+
+# Output: Availability Zone
+output "availability_zone" {
+  description = "Availability Zone of the EC2 instance"
+  value       = aws_instance.dev.availability_zone
+}
+
+# Output: AMI ID
+output "ami_id" {
+  description = "AMI ID used for the EC2 instance"
+  value       = aws_instance.dev.ami
+}
+
+# Output: Security Group ID
+output "security_group_id" {
+  description = "ID of the Security Group"
+  value       = aws_security_group.main-sg.id
+}
+
+# Output: Security Group Name
+output "security_group_name" {
+  description = "Name of the Security Group"
+  value       = aws_security_group.main-sg.name
 }
 ```
 
