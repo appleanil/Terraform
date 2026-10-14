@@ -222,6 +222,362 @@ output "security_group_name" {
 }
 ```
 
+# 4. AWS resource	Quantity
+VPC	1
+Public subnets	2
+Private subnets	2
+Internet Gateway	1
+NAT Gateway	1
+Elastic IP	1
+Public route table	1
+Private route table	1
+Route table associations	4
+Security groups	2
+Public EC2	1
+Private EC2 2 with output block code
+# main.tf
+```
+
+terraform {
+  required_version = ">= 1.5.0"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "5.100.0"
+    }
+  }
+}
+
+provider "aws" {
+  region = "ap-south-1"
+}
+
+# Variables
+variable "ami_id" {
+  description = "Valid x86_64 AMI ID in ap-south-1"
+  type        = string
+}
+
+variable "key_name" {
+  description = "Existing EC2 key pair name in ap-south-1"
+  type        = string
+}
+
+variable "ssh_cidr" {
+  description = "Your public IPv4 address with /32"
+  type        = string
+}
+
+# 1. VPC
+resource "aws_vpc" "main" {
+  cidr_block           = "10.0.0.0/16"
+  enable_dns_support   = true
+  enable_dns_hostnames = true
+
+  tags = {
+    Name = "Anil-VPC"
+  }
+}
+
+# 2. Public Subnet A
+resource "aws_subnet" "public_a" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.0.1.0/24"
+  availability_zone       = "ap-south-1a"
+  map_public_ip_on_launch = true
+
+  tags = {
+    Name = "Public-Subnet-A"
+  }
+}
+
+# 3. Public Subnet B
+resource "aws_subnet" "public_b" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.0.2.0/24"
+  availability_zone       = "ap-south-1b"
+  map_public_ip_on_launch = true
+
+  tags = {
+    Name = "Public-Subnet-B"
+  }
+}
+
+# 4. Private Subnet A
+resource "aws_subnet" "private_a" {
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = "10.0.3.0/24"
+  availability_zone = "ap-south-1a"
+
+  tags = {
+    Name = "Private-Subnet-A"
+  }
+}
+
+# 5. Private Subnet B
+resource "aws_subnet" "private_b" {
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = "10.0.4.0/24"
+  availability_zone = "ap-south-1b"
+
+  tags = {
+    Name = "Private-Subnet-B"
+  }
+}
+
+# 6. Internet Gateway
+resource "aws_internet_gateway" "igw" {
+  vpc_id = aws_vpc.main.id
+
+  tags = {
+    Name = "Anil-IGW"
+  }
+}
+
+# 7. Public Route Table
+resource "aws_route_table" "public_rt" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.igw.id
+  }
+
+  tags = {
+    Name = "Public-Route-Table"
+  }
+}
+
+# 8. Public Route Table Associations
+resource "aws_route_table_association" "public_a" {
+  subnet_id      = aws_subnet.public_a.id
+  route_table_id = aws_route_table.public_rt.id
+}
+
+resource "aws_route_table_association" "public_b" {
+  subnet_id      = aws_subnet.public_b.id
+  route_table_id = aws_route_table.public_rt.id
+}
+
+# 9. Elastic IP for NAT Gateway
+resource "aws_eip" "nat_eip" {
+  domain = "vpc"
+
+  tags = {
+    Name = "Anil-NAT-EIP"
+  }
+
+  depends_on = [aws_internet_gateway.igw]
+}
+
+# 10. NAT Gateway in AZ A
+resource "aws_nat_gateway" "nat" {
+  allocation_id = aws_eip.nat_eip.id
+  subnet_id     = aws_subnet.public_a.id
+
+  tags = {
+    Name = "Anil-NAT-Gateway"
+  }
+
+  depends_on = [aws_internet_gateway.igw]
+}
+
+# 11. Private Route Table
+resource "aws_route_table" "private_rt" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.nat.id
+  }
+
+  tags = {
+    Name = "Private-Route-Table"
+  }
+}
+
+# 12. Private Route Table Associations
+resource "aws_route_table_association" "private_a" {
+  subnet_id      = aws_subnet.private_a.id
+  route_table_id = aws_route_table.private_rt.id
+}
+
+resource "aws_route_table_association" "private_b" {
+  subnet_id      = aws_subnet.private_b.id
+  route_table_id = aws_route_table.private_rt.id
+}
+
+# 13. Public EC2 Security Group
+resource "aws_security_group" "public_sg" {
+  name        = "anil-public-sg"
+  description = "Allow HTTP and restricted SSH"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    description = "SSH from trusted IP"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = [var.ssh_cidr]
+  }
+
+  ingress {
+    description = "HTTP"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "Public-EC2-SG"
+  }
+}
+
+# 14. Private EC2 Security Group
+resource "aws_security_group" "private_sg" {
+  name        = "anil-private-sg"
+  description = "Allow SSH from public EC2"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    description     = "SSH from public EC2"
+    from_port       = 22
+    to_port         = 22
+    protocol        = "tcp"
+    security_groups = [aws_security_group.public_sg.id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "Private-EC2-SG"
+  }
+}
+
+# 15. Public EC2 in AZ B
+resource "aws_instance" "public_ec2" {
+  ami                         = var.ami_id
+  instance_type               = "t2.micro"
+  key_name                    = var.key_name
+  subnet_id                   = aws_subnet.public_b.id
+  vpc_security_group_ids      = [aws_security_group.public_sg.id]
+  associate_public_ip_address = true
+
+  user_data = <<-EOF
+    #!/bin/bash
+    dnf install -y httpd
+    systemctl enable --now httpd
+    echo "<h1>Anil Terraform Web Server</h1>" > /var/www/html/index.html
+  EOF
+
+  tags = {
+    Name = "Public-Web-Server"
+  }
+
+  depends_on = [
+    aws_route_table_association.public_b
+  ]
+}
+
+# 16. Private EC2 in AZ B
+resource "aws_instance" "private_ec2" {
+  ami                    = var.ami_id
+  instance_type          = "t2.micro"
+  key_name               = var.key_name
+  subnet_id              = aws_subnet.private_b.id
+  vpc_security_group_ids = [aws_security_group.private_sg.id]
+
+  tags = {
+    Name = "Private-Server"
+  }
+
+  depends_on = [
+    aws_route_table_association.private_b
+  ]
+}
+
+# 17. Outputs
+output "vpc_id" {
+  value = aws_vpc.main.id
+}
+
+output "public_subnet_a_id" {
+  value = aws_subnet.public_a.id
+}
+
+output "public_subnet_b_id" {
+  value = aws_subnet.public_b.id
+}
+
+output "private_subnet_a_id" {
+  value = aws_subnet.private_a.id
+}
+
+output "private_subnet_b_id" {
+  value = aws_subnet.private_b.id
+}
+
+output "internet_gateway_id" {
+  value = aws_internet_gateway.igw.id
+}
+
+output "nat_gateway_id" {
+  value = aws_nat_gateway.nat.id
+}
+
+output "nat_gateway_public_ip" {
+  value = aws_eip.nat_eip.public_ip
+}
+
+output "public_route_table_id" {
+  value = aws_route_table.public_rt.id
+}
+
+output "private_route_table_id" {
+  value = aws_route_table.private_rt.id
+}
+
+output "public_ec2_id" {
+  value = aws_instance.public_ec2.id
+}
+
+output "public_ec2_ip" {
+  value = aws_instance.public_ec2.public_ip
+}
+
+output "private_ec2_id" {
+  value = aws_instance.private_ec2.id
+}
+
+output "private_ec2_ip" {
+  value = aws_instance.private_ec2.private_ip
+}
+
+output "web_server_url" {
+  value = "http://${aws_instance.public_ec2.public_ip}"
+}
+```
+
+# terraform.tfvars
+
+ami_id   = "ami-0011550b539717e2a"
+key_name = "newanil6969d"
+ssh_cidr = "106.200.27.215/32"
+
 
 
 
