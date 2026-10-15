@@ -4,29 +4,8 @@ We'll use your preferred AWS region, `ap-south-1` (Mumbai), and separate reusabl
 
 ## 1. Architecture
 
-Internet
+<img width="909" height="581" alt="image" src="https://github.com/user-attachments/assets/54dc6158-1105-4ae0-b491-0be87bfa9d32" />
 
-Internet Gateway (IGW)
-
-## VPC — 10.0.0.0/16
-
-Public subnet
-
-10.0.1.0/24
-
-EC2 + NAT Gateway
-
-Internet route
-
-Private subnet
-
-10.0.2.0/24
-
-Private EC2
-
-Outbound via NAT
-
-Public route table → IGW · Private route table → NAT Gateway
 
 How it works:
 
